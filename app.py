@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import os
-import pandas as pd
 import datetime 
 
 
