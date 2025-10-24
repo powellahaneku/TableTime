@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or "Restaurant System" }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+  <nav>
+    <a class="nav-brand" href="{{ url_for('dashboard') }}">Reserve</a>
+    <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Reservations</a>
+    {% if user.is_admin %}
+      <a href="{{ url_for('restaurants') }}" class="{% if request.endpoint == 'restaurants' %}active{% endif %}">Restaurants</a>
+      <a href="{{ url_for('tables_view') }}" class="{% if request.endpoint == 'tables_view' %}active{% endif %}">Tables</a>
+      <a href="{{ url_for('menu_items') }}" class="{% if request.endpoint == 'menu_items' %}active{% endif %}">Menu</a>
+      <a href="{{ url_for('orders') }}" class="{% if request.endpoint == 'orders' %}active{% endif %}">Orders</a>
+      <a href="{{ url_for('waitlist') }}" class="{% if request.endpoint == 'waitlist' %}active{% endif %}">Waitlist</a>
+      <a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}active{% endif %}">Analytics</a>
+    {% endif %}
+    <a href="{{ url_for('notifications') }}" class="{% if request.endpoint == 'notifications' %}active{% endif %}">Notifications</a>
+    <a href="{{ url_for('profile') }}" class="{% if request.endpoint == 'profile' %}active{% endif %}">Profile</a>
+    <a href="{{ url_for('logout') }}" class="right">Logout</a>
+  </nav>
+</header>
+
+<main class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+<footer></footer>
+
+<script>
+// Lightweight JS enhancer: filter tables by selected restaurant on reservation page
+(function(){
+  const restSel = document.querySelector('select[name="restaurant_id"]');
+  const tableSel = document.querySelector('select[name="table_id"]');
+  if (restSel && tableSel) {
+    function filterTables() {
+      const rid = restSel.value;
+      [...tableSel.options].forEach(opt => {
+        const rr = opt.getAttribute('data-restaurant');
+        opt.hidden = rr && rr !== rid;
+      });
+      // Select first visible
+      const firstVisible = [...tableSel.options].find(o => !o.hidden);
+      if (firstVisible) tableSel.value = firstVisible.value;
+    }
+    filterTables();
+    restSel.addEventListener('change', filterTables);
+  }
+})();
+</script>
+</body>
+</html>

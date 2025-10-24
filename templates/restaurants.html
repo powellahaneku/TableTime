@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Restaurants</h1>
+<form method="POST" class="grid">
+  <div><label>Name</label><input name="name" placeholder="Restaurant Name" required></div>
+  <div><label>Address</label><input name="address" placeholder="123 Main St"></div>
+  <div><label>Phone</label><input name="phone" placeholder="+1 555-111-2222"></div>
+  <div><label>Email</label><input name="email" type="email" placeholder="hello@restaurant.com"></div>
+  <div><label>Opens</label><input name="open_time" type="time" required></div>
+  <div><label>Closes</label><input name="close_time" type="time" required></div>
+  <div style="align-self:end"><button type="submit">Add Restaurant</button></div>
+</form>
+
+<h2>All Restaurants</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Name</th><th>Address</th><th>Phone</th><th>Email</th><th>Open</th><th>Close</th><th></th></tr>
+  {% for r in items %}
+    <tr>
+      <td>{{ r.name }}</td>
+      <td>{{ r.address }}</td>
+      <td>{{ r.phone }}</td>
+      <td>{{ r.email }}</td>
+      <td>{{ r.open_time }}</td>
+      <td>{{ r.close_time }}</td>
+      <td>
+        <form method="POST" style="display:inline">
+          <input type="hidden" name="__delete_id" value="{{ r.restaurant_id }}">
+          <button class="btn secondary">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

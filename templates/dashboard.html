@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Welcome, {{ user.name or user.email }} 👋</h1>
+<p class="subtle">
+  {% if user.is_admin %}
+    Oversee operations, manage inventory, and review analytics.
+  {% else %}
+    Book a table and manage your reservations with ease.
+  {% endif %}
+</p>
+
+<div class="grid-cards">
+  {% if user.is_admin %}
+    <div class="card">
+      <h2>Quick Actions</h2>
+      <div class="stack">
+        <a class="btn" href="{{ url_for('restaurants') }}">Add Restaurant</a>
+        <a class="btn" href="{{ url_for('menu_items') }}">Add Menu Item</a>
+        <a class="btn" href="{{ url_for('analytics') }}">View Analytics</a>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Operations</h2>
+      <p class="subtle">Manage tables, orders, and waitlist.</p>
+      <div class="stack">
+        <a class="btn ghost" href="{{ url_for('tables_view') }}">Manage Tables</a>
+        <a class="btn ghost" href="{{ url_for('orders') }}">Orders</a>
+        <a class="btn ghost" href="{{ url_for('waitlist') }}">Waitlist</a>
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <h2>Make a Reservation</h2>
+      <p class="subtle">Choose your favorite restaurant and time.</p>
+      <a class="btn" href="{{ url_for('index') }}">Book Now</a>
+    </div>
+    <div class="card">
+      <h2>Your Profile</h2>
+      <p class="subtle">Keep your info up to date.</p>
+      <a class="btn ghost" href="{{ url_for('profile') }}">Edit Profile</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

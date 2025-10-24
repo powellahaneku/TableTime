@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Orders</h1>
+<form method="POST" class="grid">
+  <div>
+    <label>User</label>
+    <select name="user_id" required>
+      {% for u in users or [] %}
+        <option value="{{ u.user_id }}">{{ u.full_name or u.email }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Restaurant</label>
+    <select name="restaurant_id" required>
+      {% for r in restaurants or [] %}
+        <option value="{{ r.restaurant_id }}">{{ r.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Reservation (optional)</label>
+    <select name="reservation_id">
+      <option value="">— None —</option>
+      {% for rs in reservations or [] %}
+        <option value="{{ rs.reservation_id }}">
+          {{ rs.reservation_id }} — {{ rs.restaurant_name or rs.restaurant_id }} @ {{ rs.reservation_time }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Order Type</label>
+    <select name="order_type">
+      <option>Dine-In</option><option>Takeout</option><option>Delivery</option>
+    </select>
+  </div>
+  <div><label>Total Amount</label><input name="total_amount" type="number" step="0.01" placeholder="0.00" required></div>
+  <div>
+    <label>Status</label>
+    <select name="status"><option>Pending</option><option>Paid</option><option>Cancelled</option></select>
+  </div>
+  <div style="align-self:end"><button type="submit">Create Order</button></div>
+</form>
+
+<h2>All Orders</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>User</th><th>Restaurant</th><th>Reservation</th><th>Type</th><th>Total</th><th>Status</th><th></th></tr>
+  {% for o in items %}
+    <tr>
+      <td>{{ o.user_name or o.user_id }}</td>
+      <td>{{ o.restaurant_name or o.restaurant_id }}</td>
+      <td>{{ o.reservation_id or '—' }}</td>
+      <td>{{ o.order_type }}</td>
+      <td>${{ '%.2f'|format(o.total_amount) }}</td>
+      <td><span class="badge">{{ o.status }}</span></td>
+      <td>
+        <form method="POST" style="display:inline">
+          <input type="hidden" name="__delete_id" value="{{ o.order_id }}">
+          <button class="btn secondary">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

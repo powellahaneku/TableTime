@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Waitlist</h1>
+<form method="POST" class="grid">
+  <div>
+    <label>Restaurant</label>
+    <select name="restaurant_id" required>
+      {% for r in restaurants or [] %}
+        <option value="{{ r.restaurant_id }}|{{r.name}}">{{ r.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>User</label>
+    <select name="user_id" required>
+      {% for u in users or [] %}
+        <option value="{{ u.user_id }}">{{ u.full_name or u.email }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div><label>Party Size</label><input name="party_size" type="number" min="1" required></div>
+  <div><label>Estimated Wait (min)</label>
+  {#<input name="estimated_wait_time" type="number" min="0" required></div>#}
+  <select name="estimated_wait_time">
+    <option value=5>5 mins</option>
+    <option value=10>10 mins</option>
+    <option value=20>20 mins</option>
+    <option value=30>30 mins</option>
+ </select>
+</div>
+  <div>
+    <label>Status</label>
+    <select name="status"><option>Waiting</option><option>Seated</option><option>Cancelled</option></select>
+  </div>
+  <div style="align-self:end"><button type="submit">Add to Waitlist</button></div>
+</form>
+
+<h2>All Entries</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Restaurant</th><th>User</th><th>Party</th><th>ETA</th><th>Status</th><th></th></tr>
+  {% for w in items %}
+    <tr>
+      <td>{{ w.restaurant_name or w.restaurant_id }}</td>
+      <td>{{ w.user_name or w.user_id }}</td>
+      <td>{{ w.party_size }}</td>
+      <td>{{ w.estimated_wait_time }} min</td>
+      <td><span class="badge">{{ w.status }}</span></td>
+      <td>
+        <form method="POST" style="display:inline">
+          <input type="hidden" name="__delete_id" value="{{ w.waitlist_id }}">
+          <button class="btn secondary">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

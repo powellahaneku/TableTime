@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Notifications</h1>
+
+{% if user.is_admin and users %}
+<h2>Send Notification</h2>
+<form action="{{ url_for('notifications') }}" method="post" class="grid">
+  <div>
+    <label>Recipient</label>
+    <select name="user_id" required>
+      {% for u in users %}
+        <option value="{{ u.user_id }}">{{ u.full_name or u.email }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Type</label>
+    <input type="text" name="type" placeholder="Reservation Update">
+  </div>
+  <div>
+    <label>Message</label>
+    <input type="text" name="message" placeholder="Your table is ready">
+  </div>
+  <div>
+    <label>Status</label>
+    <input type="text" name="status" placeholder="Unread">
+  </div>
+  <div style="align-self:end"><button type="submit">Send</button></div>
+</form>
+{% elif user.is_admin %}
+<p class="subtle">Admin: To enable the send form, pass a <code>users</code> list from the route.</p>
+{% endif %}
+
+<h2>{% if user.is_admin %}All Notifications{% else %}Your Notifications{% endif %}</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Message</th><th>Type</th><th>Status</th></tr>
+  {% for n in items %}
+    <tr>
+      <td>{{ n.message }}</td>
+      <td>{{ n.type }}</td>
+      <td><span class="badge">{{ n.status }}</span></td>
+    </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Tables</h1>
+<form method="POST" class="grid">
+  <div>
+    <label>Restaurant</label>
+    <select name="restaurant_id" required>
+      {% for r in restaurants %}
+        <option value="{{ r.restaurant_id }}">{{ r.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div><label>Table Number</label><input name="table_number" placeholder="A1 / 12" required></div>
+  <div><label>Capacity</label><input name="capacity" type="number" min="1" required></div>
+  <div>
+    <label>Status</label>
+    <select name="status">
+      <option>Available</option>
+      <option>Occupied</option>
+      <option>Reserved</option>
+      <option>Out of Service</option>
+    </select>
+  </div>
+  <div style="align-self:end"><button type="submit">Add Table</button></div>
+</form>
+
+<h2>All Tables</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Restaurant</th><th>Table</th><th>Capacity</th><th>Status</th><th></th></tr>
+  {% for t in items %}
+    <tr>
+      <td>{{ t.restaurant_name or t.restaurant_id }}</td>
+      <td>{{ t.table_number }}</td>
+      <td>{{ t.capacity }}</td>
+      <td><span class="badge">{{ t.status }}</span></td>
+      <td>
+        <form method="POST" style="display:inline">
+          <input type="hidden" name="__delete_id" value="{{ t.table_id }}">
+          <button class="btn secondary">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

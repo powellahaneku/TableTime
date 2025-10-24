@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Profile</h1>
+<form method="POST" class="grid" style="max-width:900px">
+  <div>
+    <label>Full Name</label>
+    <input name="full_name" value="{{ user.full_name or '' }}" required>
+  </div>
+  <div>
+    <label>Email</label>
+    <input name="email" type="email" value="{{ user.email or '' }}" required>
+  </div>
+  <div>
+    <label>Phone</label>
+    <input name="phone" value="{{ user.phone or '' }}">
+  </div>
+  <div style="align-self:end"><button type="submit">Save Changes</button></div>
+</form>
+{% endblock %}

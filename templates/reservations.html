@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Book a Reservation</h1>
+<form action="{{ url_for('add_reservation') }}" method="post" class="grid">
+  <div>
+    <label>Restaurant</label>
+    <select name="restaurant_id" required>
+      {% for r in restaurants %}
+        <option value="{{ r.restaurant_id }}">{{ r.name }}</option>
+      {% endfor %}
+    </select>
+    <div class="helper">Select a restaurant to filter tables.</div>
+  </div>
+  <div>
+    <label>Table</label>
+    <select name="table_id" required>
+      {% for t in tables %}
+        <option value="{{ t.table_id }}" data-restaurant="{{ t.restaurant_id }}">
+          Table {{ t.table_number }} — {{ t.capacity }} seats
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Party Size</label>
+    <input type="number" name="party_size" min="1" required>
+  </div>
+  <div>
+    <label>Date & Time</label>
+    <input type="datetime-local" name="reservation_time" required>
+  </div>
+  <div style="align-self:end">
+    <button type="submit">Reserve Table</button>
+  </div>
+</form>
+
+<h2>{% if user.is_admin %}All Reservations{% else %}Your Reservations{% endif %}</h2>
+<div class="table-wrap">
+<table>
+  <tr>
+    <th>Restaurant</th><th>Table</th><th>Party</th><th>Time</th><th>Status</th><th></th>
+  </tr>
+  {% for r in reservations %}
+    {% if user.is_admin or r.user_id == user.id %}
+    <tr>
+      <td>{{ r.restaurant_name or r.restaurant_id }}</td>
+      <td>{{ r.table_name or ("Table " ~ r.table_id) }}</td>
+      <td>{{ r.party_size }}</td>
+      <td>{{ r.reservation_time }}</td>
+      <td><span class="badge">{{ r.status }}</span></td>
+      <td>
+        {% if user.is_admin or r.user_id == user.id %}
+        <form action="{{ url_for('delete_reservation') }}" method="post" style="display:inline">
+          <input type="hidden" name="reservation_id" value="{{ r.reservation_id }}">
+          <button class="btn secondary">Cancel</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endif %}
+  {% endfor %}
+</table>
+</div>
+{% endblock %}
