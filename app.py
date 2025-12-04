@@ -177,6 +177,8 @@ def add_reservation():
         "status": "Pending"
     }
     out = supabase.table("reservations").insert(payload).execute()
+    #add to notifications
+    
     flash("Reservation created" if out.data else "Failed to create reservation", "ok" if out.data else "err")
     return redirect(url_for("index"))
 
@@ -193,7 +195,7 @@ def delete_reservation():
     elif user["is_admin"] or res.data[0]["user_id"] == user["id"]:
         supabase.table("reservations").delete().eq("reservation_id", rid).execute()
         flash(f"Reservation {rid} deleted", "warn")
- 
+
     else:
         flash("You are not allowed to delete this reservation.", "err")
     return redirect(url_for("index"))
@@ -344,11 +346,9 @@ def notifications():
     user = session.get("user")
 
     if not user.get("is_admin"):
-        # Non-admins see only their notifications
         data = supabase.table("notifications").select("*").eq("user_id", user["id"]).execute()
         return render_template("notifications.html", items=data.data, user=user, title="Notifications")
 
-    # Admin view
     if request.method == "POST":
         if "__delete_id" in request.form:
             supabase.table("notifications").delete().eq("notification_id", request.form["__delete_id"]).execute()
