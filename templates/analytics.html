@@ -1,41 +1,71 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Analytics</h1>
+
 <div class="grid-cards">
+
   <div class="card">
-    <h2>Events by Type</h2>
-    <div class="helper">Summary of analytics_log grouped by event type.</div>
+    <h2>Reservations by Restaurant</h2>
+    <div class="helper">Summary of reservations grouped by restaurant.</div>
     <div class="table-wrap">
       <table>
-        <tr><th>Event Type</th><th>Count</th><th>Sum</th></tr>
-        {% for r in by_type %}
-          <tr><td>{{ r.event_type }}</td><td>{{ r.count }}</td><td>{{ "%.2f"|format(r.sum) }}</td></tr>
-        {% endfor %}
+        <thead>
+          <tr>
+            <th>Restaurant</th>
+            <th>Total Reservations</th>
+            <th>Avg Party Size</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reservations_by_restaurant %}
+          <tr>
+            <td>{{ r.restaurant_name or r.restaurant_id }}</td>
+            <td>{{ r.total_reservations }}</td>
+            <td>{{ "%.1f"|format(r.avg_party_size) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
   </div>
+
   <div class="card">
-    <h2>Events by Restaurant</h2>
+    <h2>Waitlist by Restaurant</h2>
+    <div class="helper">Summary of waitlist entries grouped by restaurant.</div>
     <div class="table-wrap">
       <table>
-        <tr><th>Restaurant</th><th>Count</th></tr>
-        {% for r in by_rest %}
-          <tr><td>{{ r.restaurant_id }}</td><td>{{ r.count }}</td></tr>
-        {% endfor %}
+        <thead>
+          <tr>
+            <th>Restaurant</th>
+            <th>Total Waitlisted</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in waitlist_by_restaurant %}
+          <tr>
+            <td>{{ r.restaurant_name or r.restaurant_id }}</td>
+            <td>{{ r.total_waitlisted }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
       </table>
-    </div> 
-
-</div>
-  </div>
-  <div class = "grid-cards">
-       <button id="report" onClick="makeReport()">
-        Download Report
-        <script>
-          function makeReport() {
-            print()
-          }
-        </script>
-     </button>
+    </div>
   </div>
   
-  {% endblock %}
+
+
+</div>
+
+<div class="grid-cards" style="margin-top: 1rem;">
+  <button id="report" class="btn" type="button" onclick="makeReport()">
+    Download Report
+  </button>
+</div>
+
+<script>
+  function makeReport() {
+    window.print();
+  }
+</script>
+
+{% endblock %}

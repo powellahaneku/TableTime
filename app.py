@@ -6,7 +6,9 @@ from functools import wraps
 import os
 import datetime 
 import pandas as pd
-
+import smtplib
+from email.message import EmailMessage
+import os
 
 load_dotenv()
 
@@ -24,6 +26,18 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def inject_user():
     return dict(user=session.get("user"))
 
+#simple email function to send emails using SMTP
+def send_email(to, subject, body):
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = os.getenv("SMTP_USER")
+    msg["To"] = to
+    msg.set_content(body)
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD"))
+        server.send_message(msg)
 
 # ----------------------------
 # Authentication Decorators
@@ -77,6 +91,7 @@ def signup():
             "full_name": full_name,
             "is_admin": 0
         }).execute()
+        send_email(email, "TableTime - Welcome!", "Welcome to TableTime! We're excited to have you on board.")
         flash("Account created! Please log in.", "ok")
         return redirect(url_for("login"))
     return render_template("signup.html", title="Sign Up")
@@ -391,44 +406,68 @@ def notifications():
 @login_required
 @admin_required
 def analytics():
-    # Pull data from Supabase
-    rows = supabase.table("analytics_log").select("*").execute().data
-    
-    # Convert to DataFrame
-    df = pd.DataFrame(rows)
+    # Fetch raw data from Supabase
+    waitlist_rows = supabase.table("waitlist").select("*").order("waitlist_id").execute().data
+    reservation_rows = supabase.table("reservations").select("*").order("reservation_id").execute().data
+    user_rows = supabase.table("users").select("*").order("user_id").execute().data
+    restaurant_rows = supabase.table("restaurants").select("*").order("restaurant_id").execute().data
 
-    # Safeguard empty result case
-    if df.empty:
-        return render_template(
-            "analytics.html",
-            by_type=[],
-            by_rest=[],
-            title="Analytics"
+    # Convert to DataFrames (handle empty)
+    wl_df = pd.DataFrame(waitlist_rows or [])
+    res_df = pd.DataFrame(reservation_rows or [])
+    users_df = pd.DataFrame(user_rows or [])
+    rest_df = pd.DataFrame(restaurant_rows or [])
+
+    # ----- Reservations by restaurant -----
+    if not res_df.empty:
+        res_by_rest_df = (
+            res_df.groupby("restaurant_id")
+            .agg(
+                total_reservations=("reservation_id", "size"),
+                avg_party_size=("party_size", "mean"),
+            )
+            .reset_index()
         )
+        res_by_rest = res_by_rest_df.to_dict(orient="records")
+    else:
+        res_by_rest = []
 
-    # Ensure numeric column
-    df["value"] = pd.to_numeric(df.get("value"), errors="coerce").fillna(0)
+    # ----- Waitlist by restaurant -----
+    if not wl_df.empty:
+        wl_by_rest_df = (
+            wl_df.groupby("restaurant_id")
+            .agg(
+                total_waitlisted=("waitlist_id", "size")
+            )
+            .reset_index()
+        )
+        wl_by_rest = wl_by_rest_df.to_dict(orient="records")
+    else:
+        wl_by_rest = []
 
-    # Group by event_type
-    by_type_df = (
-        df.groupby("event_type")
-        .agg(count=("event_type", "size"), sum=("value", "sum"))
-        .reset_index()
-    )
+    # ----- Users by role -----
+    if not users_df.empty and "role" in users_df.columns:
+        users_by_role_df = (
+            users_df.groupby("role")
+            .size()
+            .reset_index(name="count")
+        )
+        users_by_role = users_by_role_df.to_dict(orient="records")
+    else:
+        users_by_role = []
 
-    # Group by restaurant_id
-    by_rest_df = (
-        df.groupby("restaurant_id")
-        .agg(count=("restaurant_id", "size"))
-        .reset_index()
-    )
+    # ----- Simple restaurant list (for labels / joining) -----
+    restaurants = rest_df.to_dict(orient="records") if not rest_df.empty else []
 
     return render_template(
         "analytics.html",
-        by_type=by_type_df.to_dict(orient="records"),
-        by_rest=by_rest_df.to_dict(orient="records"),
+        reservations_by_restaurant=res_by_rest,
+        waitlist_by_restaurant=wl_by_rest,
+        users_by_role=users_by_role,
+        restaurants=restaurants,
         title="Analytics",
     )
+
 # ----------------------------
 # Run App
 # ----------------------------
