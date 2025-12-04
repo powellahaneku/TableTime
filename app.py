@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import os
 import datetime 
+import pandas as pd
 
 
 load_dotenv()
@@ -368,25 +369,66 @@ def notifications():
 # ----------------------------
 # Analytics
 # ----------------------------
+# @app.get("/analytics")
+# @login_required
+# @admin_required
+# def analytics():
+#     rows = supabase.table("analytics_log").select("*").execute().data
+#     by_type = {}
+#     for r in rows:
+#         et = r.get("event_type")
+#         by_type.setdefault(et, {"event_type": et, "count": 0, "sum": 0.0})
+#         by_type[et]["count"] += 1
+#         by_type[et]["sum"] += float(r.get("value") or 0)
+#     by_rest = {}
+#     for r in rows:
+#         rid = r.get("restaurant_id")
+#         by_rest.setdefault(rid, {"restaurant_id": rid, "count": 0})
+#         by_rest[rid]["count"] += 1
+#     return render_template("analytics.html", by_type=list(by_type.values()), by_rest=list(by_rest.values()), title="Analytics")
+
 @app.get("/analytics")
 @login_required
 @admin_required
 def analytics():
+    # Pull data from Supabase
     rows = supabase.table("analytics_log").select("*").execute().data
-    by_type = {}
-    for r in rows:
-        et = r.get("event_type")
-        by_type.setdefault(et, {"event_type": et, "count": 0, "sum": 0.0})
-        by_type[et]["count"] += 1
-        by_type[et]["sum"] += float(r.get("value") or 0)
-    by_rest = {}
-    for r in rows:
-        rid = r.get("restaurant_id")
-        by_rest.setdefault(rid, {"restaurant_id": rid, "count": 0})
-        by_rest[rid]["count"] += 1
-    return render_template("analytics.html", by_type=list(by_type.values()), by_rest=list(by_rest.values()), title="Analytics")
+    
+    # Convert to DataFrame
+    df = pd.DataFrame(rows)
 
+    # Safeguard empty result case
+    if df.empty:
+        return render_template(
+            "analytics.html",
+            by_type=[],
+            by_rest=[],
+            title="Analytics"
+        )
 
+    # Ensure numeric column
+    df["value"] = pd.to_numeric(df.get("value"), errors="coerce").fillna(0)
+
+    # Group by event_type
+    by_type_df = (
+        df.groupby("event_type")
+        .agg(count=("event_type", "size"), sum=("value", "sum"))
+        .reset_index()
+    )
+
+    # Group by restaurant_id
+    by_rest_df = (
+        df.groupby("restaurant_id")
+        .agg(count=("restaurant_id", "size"))
+        .reset_index()
+    )
+
+    return render_template(
+        "analytics.html",
+        by_type=by_type_df.to_dict(orient="records"),
+        by_rest=by_rest_df.to_dict(orient="records"),
+        title="Analytics",
+    )
 # ----------------------------
 # Run App
 # ----------------------------
