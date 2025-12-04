@@ -19,9 +19,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ----------------------------
-# Injectors
-# ----------------------------
+
 @app.context_processor
 def inject_user():
     return dict(user=session.get("user"))
@@ -39,9 +37,7 @@ def send_email(to, subject, body):
         server.login(os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD"))
         server.send_message(msg)
 
-# ----------------------------
-# Authentication Decorators
-# ----------------------------
+# to authenticate routes
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -62,9 +58,8 @@ def admin_required(f):
     return wrapper
 
 
-# ----------------------------
-# Authentication Routes
-# ----------------------------
+#auth route 
+# modified to send welcome email upon signup
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
@@ -129,9 +124,7 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ----------------------------
-# Main Pages
-# ----------------------------
+# ----------------------------main routes
 @app.get("/dashboard")
 @login_required
 def dashboard():
@@ -148,9 +141,8 @@ def index():
     return render_template("reservations.html", user=user, tables=tables.data, reservations=res.data, restaurants=restaurants.data, title="Reservations")
 
 
-# ----------------------------
-# Profile
-# ----------------------------
+
+#profile route
 @app.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
@@ -172,9 +164,7 @@ def profile():
     return render_template("profile.html", user=user, title="Profile")
 
 
-# ----------------------------
-# Reservations
-# ----------------------------
+
 @app.post("/reservations/add")
 @login_required
 def add_reservation():
@@ -209,9 +199,7 @@ def delete_reservation():
     return redirect(url_for("index"))
 
 
-# ----------------------------
-# Admin Routes
-# ----------------------------
+#admin routes for managing entities
 @app.route("/restaurants", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -349,9 +337,7 @@ def waitlist():
     return render_template("waitlist.html", items=data.data,reservations=reservations.data,users=users.data,restaurants=restaurants.data, title="Waitlist")
 
 
-# ----------------------------
-# Notifications
-# ----------------------------
+#notifications route
 @app.route("/notifications", methods=["GET", "POST"])
 @login_required
 def notifications():
@@ -381,9 +367,7 @@ def notifications():
     return render_template("notifications.html", items=data.data, user=user, title="Notifications")
 
 
-# ----------------------------
-# Analytics
-# ----------------------------
+#old analytics route
 # @app.get("/analytics")
 # @login_required
 # @admin_required
@@ -402,23 +386,21 @@ def notifications():
 #         by_rest[rid]["count"] += 1
 #     return render_template("analytics.html", by_type=list(by_type.values()), by_rest=list(by_rest.values()), title="Analytics")
 
+#new analytics route using pandas
 @app.get("/analytics")
 @login_required
 @admin_required
 def analytics():
-    # Fetch raw data from Supabase
     waitlist_rows = supabase.table("waitlist").select("*").order("waitlist_id").execute().data
     reservation_rows = supabase.table("reservations").select("*").order("reservation_id").execute().data
     user_rows = supabase.table("users").select("*").order("user_id").execute().data
     restaurant_rows = supabase.table("restaurants").select("*").order("restaurant_id").execute().data
 
-    # Convert to DataFrames (handle empty)
     wl_df = pd.DataFrame(waitlist_rows or [])
     res_df = pd.DataFrame(reservation_rows or [])
     users_df = pd.DataFrame(user_rows or [])
     rest_df = pd.DataFrame(restaurant_rows or [])
 
-    # ----- Reservations by restaurant -----
     if not res_df.empty:
         res_by_rest_df = (
             res_df.groupby("restaurant_id")
@@ -432,7 +414,6 @@ def analytics():
     else:
         res_by_rest = []
 
-    # ----- Waitlist by restaurant -----
     if not wl_df.empty:
         wl_by_rest_df = (
             wl_df.groupby("restaurant_id")
@@ -445,7 +426,6 @@ def analytics():
     else:
         wl_by_rest = []
 
-    # ----- Users by role -----
     if not users_df.empty and "role" in users_df.columns:
         users_by_role_df = (
             users_df.groupby("role")
@@ -456,7 +436,6 @@ def analytics():
     else:
         users_by_role = []
 
-    # ----- Simple restaurant list (for labels / joining) -----
     restaurants = rest_df.to_dict(orient="records") if not rest_df.empty else []
 
     return render_template(
@@ -468,8 +447,7 @@ def analytics():
         title="Analytics",
     )
 
-# ----------------------------
-# Run App
-# ----------------------------
+
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0',debug=True)
