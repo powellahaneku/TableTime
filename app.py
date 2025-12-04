@@ -386,66 +386,93 @@ def notifications():
 #         by_rest[rid]["count"] += 1
 #     return render_template("analytics.html", by_type=list(by_type.values()), by_rest=list(by_rest.values()), title="Analytics")
 
-#new analytics route using pandas
 @app.get("/analytics")
 @login_required
 @admin_required
 def analytics():
-    waitlist_rows = supabase.table("waitlist").select("*").order("waitlist_id").execute().data
-    reservation_rows = supabase.table("reservations").select("*").order("reservation_id").execute().data
-    user_rows = supabase.table("users").select("*").order("user_id").execute().data
-    restaurant_rows = supabase.table("restaurants").select("*").order("restaurant_id").execute().data
+    # Fetch raw data from Supabase
+    waitlist_rows = supabase.table("waitlist").select("*").order("waitlist_id").execute().data or []
+    reservation_rows = supabase.table("reservations").select("*").order("reservation_id").execute().data or []
+    user_rows = supabase.table("users").select("*").order("user_id").execute().data or []
+    restaurant_rows = supabase.table("restaurants").select("*").order("restaurant_id").execute().data or []
 
-    wl_df = pd.DataFrame(waitlist_rows or [])
-    res_df = pd.DataFrame(reservation_rows or [])
-    users_df = pd.DataFrame(user_rows or [])
-    rest_df = pd.DataFrame(restaurant_rows or [])
+    # Build restaurant lookup: id -> name
+    restaurant_name_by_id = {
+        r.get("restaurant_id"): r.get("name")
+        for r in restaurant_rows
+    }
 
-    if not res_df.empty:
-        res_by_rest_df = (
-            res_df.groupby("restaurant_id")
-            .agg(
-                total_reservations=("reservation_id", "size"),
-                avg_party_size=("party_size", "mean"),
-            )
-            .reset_index()
-        )
-        res_by_rest = res_by_rest_df.to_dict(orient="records")
-    else:
-        res_by_rest = []
+    # ---------- Reservations by restaurant ----------
+    res_stats = {}  # rid -> {restaurant_id, count, party_size_sum}
+    for r in reservation_rows:
+        rid = r.get("restaurant_id")
+        if rid is None:
+            continue
+        party_size = r.get("party_size") or 0
+        if rid not in res_stats:
+            res_stats[rid] = {
+                "restaurant_id": rid,
+                "total_reservations": 0,
+                "party_size_sum": 0.0,
+            }
+        res_stats[rid]["total_reservations"] += 1
+        res_stats[rid]["party_size_sum"] += float(party_size)
 
-    if not wl_df.empty:
-        wl_by_rest_df = (
-            wl_df.groupby("restaurant_id")
-            .agg(
-                total_waitlisted=("waitlist_id", "size")
-            )
-            .reset_index()
-        )
-        wl_by_rest = wl_by_rest_df.to_dict(orient="records")
-    else:
-        wl_by_rest = []
+    reservations_by_restaurant = []
+    for rid, stats in res_stats.items():
+        count = stats["total_reservations"]
+        avg_party_size = stats["party_size_sum"] / count if count > 0 else 0.0
+        reservations_by_restaurant.append({
+            "restaurant_id": rid,
+            "restaurant_name": restaurant_name_by_id.get(rid),
+            "total_reservations": count,
+            "avg_party_size": avg_party_size,
+        })
 
-    if not users_df.empty and "role" in users_df.columns:
-        users_by_role_df = (
-            users_df.groupby("role")
-            .size()
-            .reset_index(name="count")
-        )
-        users_by_role = users_by_role_df.to_dict(orient="records")
-    else:
-        users_by_role = []
+    # ---------- Waitlist by restaurant ----------
+    wl_stats = {}  # rid -> {restaurant_id, count}
+    for w in waitlist_rows:
+        rid = w.get("restaurant_id")
+        if rid is None:
+            continue
+        if rid not in wl_stats:
+            wl_stats[rid] = {
+                "restaurant_id": rid,
+                "total_waitlisted": 0,
+            }
+        wl_stats[rid]["total_waitlisted"] += 1
 
-    restaurants = rest_df.to_dict(orient="records") if not rest_df.empty else []
+    waitlist_by_restaurant = []
+    for rid, stats in wl_stats.items():
+        waitlist_by_restaurant.append({
+            "restaurant_id": rid,
+            "restaurant_name": restaurant_name_by_id.get(rid),
+            "total_waitlisted": stats["total_waitlisted"],
+        })
+
+    # ---------- Users by role ----------
+    role_counts = {}  # role -> count
+    for u in user_rows:
+        role = u.get("role") or "Unknown"
+        role_counts[role] = role_counts.get(role, 0) + 1
+
+    users_by_role = [
+        {"role": role, "count": count}
+        for role, count in role_counts.items()
+    ]
+
+    # Pass through the raw restaurants if you still need them in the template
+    restaurants = restaurant_rows
 
     return render_template(
         "analytics.html",
-        reservations_by_restaurant=res_by_rest,
-        waitlist_by_restaurant=wl_by_rest,
+        reservations_by_restaurant=reservations_by_restaurant,
+        waitlist_by_restaurant=waitlist_by_restaurant,
         users_by_role=users_by_role,
         restaurants=restaurants,
         title="Analytics",
     )
+
 
 
 
